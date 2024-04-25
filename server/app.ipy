@@ -1,0 +1,44 @@
+from flask import Flask , jsonify ,request
+from flask_pymongo import PyMongo ,ObjectId
+from bson import json_util
+import json
+from dotenv import load_dotenv
+import os
+from flask_cors import CORS
+from follow import followProduct
+
+app = Flask(__name__)
+CORS(app)
+app.config["MONGO_URI"] =  os.getenv("DB_SERVER_NAME")
+mongo = PyMongo(app)
+load_dotenv()
+
+@app.route('/api/find-all-product')
+def findProduct():    
+    findAll = mongo.db.productTbl.find();
+    response = json.loads(json_util.dumps(findAll))  
+    return response
+
+@app.route('/api/find-limit-product')
+def findLimitProduct():
+    findLimit = mongo.db.productTbl.find().sort([('timestamp', -1)]).limit(4);
+    response = json.loads(json_util.dumps(findLimit))  
+    return response
+
+@app.route('/api/insert-product', methods=["POST"] )
+def insertProduct():
+    postData = request.get_json()
+    link=postData["link"]
+    followProduct(link)
+    return jsonify({'status' : 200  , "data" : link})
+   
+
+@app.route('/api/delete-product',methods=["POST"] )
+def deleteProduct():
+    postData = request.get_json()
+    idd=postData["id"]
+    findd = mongo.db.productTbl.find_one_and_delete({"_id":ObjectId(idd)})
+    return jsonify({'status' : 200  , "data" : idd})
+
+if __name__ == "__main__":
+    app.run(debug=True)
